@@ -18,8 +18,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      
+      - name: Grant execute permission to gradlew
+        run: chmod +x ./gradlew
 
       - name: Build
         run: ./gradlew build
@@ -31,3 +32,4 @@ jobs:
           name: hikari-tweaks-build-artifacts
           path: build/libs/*.jar
           retention-days: 7
+
