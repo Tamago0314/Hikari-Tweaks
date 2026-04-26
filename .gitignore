@@ -1,0 +1,24 @@
+﻿# Gradle
+.gradle/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Runtime
+run/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / crash dumps
+*.log
+hs_err_pid*
+replay_pid*
+*.hprof
