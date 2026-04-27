@@ -42,10 +42,18 @@ public final class TweaksOptions {
             "ホットバー自動補充の対象アイテム ID 一覧です。"
     );
 
-    // ── ホットキー（Config画面を開く） ──────────────────────
+    // ── ホットキー ──────────────────────────────────────
     public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey(
             "openConfig", "RIGHT_SHIFT",
             "HikariTweaks の設定画面を開きます。"
+    );
+    public static final ConfigHotkey SCOREBOARD_NEXT_PAGE = new ConfigHotkey(
+            "scoreboardNextPage", "",
+            "スコアボードの次のページへ切り替えます。"
+    );
+    public static final ConfigHotkey SCOREBOARD_PREV_PAGE = new ConfigHotkey(
+            "scoreboardPrevPage", "",
+            "スコアボードの前のページへ切り替えます。"
     );
 
     // ── タブ別リスト ─────────────────────────────────────
@@ -58,9 +66,11 @@ public final class TweaksOptions {
     private static final List<IConfigBase> LISTS = List.of(
             HOTBAR_RESTOCK_LIST
     );
-    /** ホットキータブ用：Config画面を開くキーのみ */
+    /** ホットキータブ用 */
     private static final List<IConfigBase> HOTKEYS_LIST = List.of(
-            OPEN_CONFIG
+            OPEN_CONFIG,
+            SCOREBOARD_NEXT_PAGE,
+            SCOREBOARD_PREV_PAGE
     );
 
     static {
@@ -70,6 +80,8 @@ public final class TweaksOptions {
         TOTEM_RESTOCK.setValueChangeCallback(c -> onConfigChanged());
         HOTBAR_RESTOCK_LIST.setValueChangeCallback(c -> onConfigChanged());
         OPEN_CONFIG.setValueChangeCallback(c -> onConfigChanged());
+        SCOREBOARD_NEXT_PAGE.setValueChangeCallback(c -> onConfigChanged());
+        SCOREBOARD_PREV_PAGE.setValueChangeCallback(c -> onConfigChanged());
     }
 
     private TweaksOptions() {}
@@ -85,7 +97,9 @@ public final class TweaksOptions {
                 DURABILITY_WARNING_ENABLED,
                 AUTO_RESTOCK_HOTBAR,
                 TOTEM_RESTOCK,
-                OPEN_CONFIG
+                OPEN_CONFIG,
+                SCOREBOARD_NEXT_PAGE,
+                SCOREBOARD_PREV_PAGE
         );
     }
 
@@ -103,6 +117,8 @@ public final class TweaksOptions {
             TOTEM_RESTOCK.getKeybind().setValueFromString(config.totemRestockHotkey);
             HOTBAR_RESTOCK_LIST.setStrings(config.hotbarRestockList);
             OPEN_CONFIG.getKeybind().setValueFromString(config.openConfigHotkey);
+            SCOREBOARD_NEXT_PAGE.getKeybind().setValueFromString(config.scoreboardNextPageHotkey);
+            SCOREBOARD_PREV_PAGE.getKeybind().setValueFromString(config.scoreboardPrevPageHotkey);
         } finally {
             loadingFromConfig = false;
         }
@@ -119,6 +135,8 @@ public final class TweaksOptions {
         config.totemRestockHotkey             = TOTEM_RESTOCK.getKeybind().getStringValue();
         config.hotbarRestockList              = new java.util.ArrayList<>(HOTBAR_RESTOCK_LIST.getStrings());
         config.openConfigHotkey               = OPEN_CONFIG.getKeybind().getStringValue();
+        config.scoreboardNextPageHotkey       = SCOREBOARD_NEXT_PAGE.getKeybind().getStringValue();
+        config.scoreboardPrevPageHotkey       = SCOREBOARD_PREV_PAGE.getKeybind().getStringValue();
         config.normalize();
     }
 

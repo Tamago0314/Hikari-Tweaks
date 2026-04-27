@@ -3,7 +3,7 @@ package dev.tamago0314.hikariTweaks.config;
 public class ClientConfig {
     // ── バージョン管理 ────────────────────────────────────────
     /** 設定ファイルのスキーマバージョン。フィールド追加時に上げる */
-    public int configVersion = 2;
+    public int configVersion = 3;
 
     public boolean fixBeaconRangeFreeCam = true;
     public String fixBeaconRangeFreeCamHotkey = "";
@@ -41,6 +41,10 @@ public class ClientConfig {
     public int scoreboardSelfColor   = 0xFFFFFF55;
     /** サーバートータルをHUDに表示するか */
     public boolean scoreboardShowServerTotal = true;
+    /** 次ページホットキー */
+    public String scoreboardNextPageHotkey = "";
+    /** 前ページホットキー */
+    public String scoreboardPrevPageHotkey = "";
 
     // update checker
     public boolean updateCheckerEnabled = true;
@@ -66,17 +70,13 @@ public class ClientConfig {
         if (updateGithubRepo == null) updateGithubRepo = "Hikari-Tweaks";
         if (updateReleaseUrlOverride == null) updateReleaseUrlOverride = "";
         if (updateLastNotifiedVersion == null) updateLastNotifiedVersion = "";
+        if (scoreboardNextPageHotkey == null) scoreboardNextPageHotkey = "";
+        if (scoreboardPrevPageHotkey == null) scoreboardPrevPageHotkey = "";
         updateGithubOwner = updateGithubOwner.trim();
         updateGithubRepo = updateGithubRepo.trim();
         updateReleaseUrlOverride = updateReleaseUrlOverride.trim();
     }
 
-    /**
-     * GSONはReflectionFactoryでコンストラクタをバイパスするため、
-     * JSONに存在しないフィールドはJavaデフォルト値(false/0/null)になる。
-     * バージョンアップ時に追加されたフィールドへ正しいデフォルト値を補完する。
-     * configVersionを見て、古いスキーマからの移行処理もここで行う。
-     */
     public void applyDefaults() {
         // configVersion 0 (フィールド自体が無い旧ファイル) → v1 への移行
         if (configVersion < 1) {
@@ -106,7 +106,10 @@ public class ClientConfig {
             updateLastNotifiedVersion = "";
             configVersion = 2;
         }
-        // 将来のバージョンアップ時はここに追記:
-        // if (configVersion < 2) { ... configVersion = 2; }
+        if (configVersion < 3) {
+            scoreboardNextPageHotkey = "";
+            scoreboardPrevPageHotkey = "";
+            configVersion = 3;
+        }
     }
 }

@@ -1,6 +1,7 @@
 package dev.tamago0314.hikariTweaks.config;
 
 import dev.tamago0314.hikariTweaks.gui.HikariTweaksConfigScreen;
+import dev.tamago0314.hikariTweaks.scoreboard.ScoreboardHudRenderer;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.hotkeys.IHotkeyCallback;
 import fi.dy.masa.malilib.hotkeys.IKeybind;
@@ -30,6 +31,24 @@ public final class HotkeyCallbacks {
                 return true;
             }
         });
+
+        // スコアボード次ページ
+        TweaksOptions.SCOREBOARD_NEXT_PAGE.getKeybind().setCallback(new IHotkeyCallback() {
+            @Override
+            public boolean onKeyAction(KeyAction action, IKeybind key) {
+                ScoreboardHudRenderer.nextPage();
+                return true;
+            }
+        });
+
+        // スコアボード前ページ
+        TweaksOptions.SCOREBOARD_PREV_PAGE.getKeybind().setCallback(new IHotkeyCallback() {
+            @Override
+            public boolean onKeyAction(KeyAction action, IKeybind key) {
+                ScoreboardHudRenderer.prevPage();
+                return true;
+            }
+        });
     }
 
     private static void attachToggle(fi.dy.masa.malilib.config.IHotkeyTogglable config) {
@@ -39,10 +58,9 @@ public final class HotkeyCallbacks {
                 config.toggleBooleanValue();
                 boolean enabled = config.getBooleanValue();
                 String status = enabled
-                    ? GuiBase.TXT_GREEN + "ON" + GuiBase.TXT_RST
-                    : GuiBase.TXT_RED  + "OFF" + GuiBase.TXT_RST;
+                        ? GuiBase.TXT_GREEN + "ON" + GuiBase.TXT_RST
+                        : GuiBase.TXT_RED  + "OFF" + GuiBase.TXT_RST;
                 InfoUtils.printActionbarMessage("%s: %s", config.getPrettyName(), status);
-                // 設定を明示的に保存する（malilib のコールバック経由だと保存されない場合がある）
                 TweaksOptions.writeToConfig(ClientConfigManager.config);
                 ClientConfigManager.save();
                 return true;

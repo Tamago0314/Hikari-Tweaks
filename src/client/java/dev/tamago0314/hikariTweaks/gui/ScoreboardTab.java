@@ -18,17 +18,10 @@ import net.minecraft.client.util.math.MatrixStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Hikari-Tweaks 設定画面の「スコアボード」タブ。
- *
- * ボタン／スライダーはすべて malilib の ButtonGeneric／WidgetSlider を使用し、
- * HikariTweaksConfigScreen の addButton()／addWidget() に登録する。
- * これにより malilib の onMouseClicked ループだけがイベントを処理し、
- * バニラ Screen.mouseClicked() によるクリック音の二重再生を防ぐ。
- *
- * malilib 0.12.0 には setVisible() が存在しないため、
- * 非アクティブタブのボタンは y = OFFSCREEN（-2000）に退避して実質的に非表示にする。
  */
 public final class ScoreboardTab {
 
@@ -38,7 +31,6 @@ public final class ScoreboardTab {
         SubTab(String l) { label = l; }
     }
 
-    /** ボタン／ウィジェットを malilib の GUI に登録するためのインターフェース */
     public interface WidgetHost {
         <T extends ButtonBase>  T addButton(T button, IButtonActionListener listener);
         <T extends WidgetBase>  T addWidget(T widget);
@@ -51,8 +43,9 @@ public final class ScoreboardTab {
     private static final int SCROLL_SPEED = 4;
     private static final int SCROLLBAR_W = 8;
     private static final int SUBTAB_H    = 16;
-    /** 非アクティブタブのボタンを退避するスクリーン外 Y 座標 */
     private static final int OFFSCREEN   = -2000;
+    /** カテゴリヘッダーの高さ */
+    private static final int CATEGORY_H  = 14;
 
     // ───── 状態 ─────
     private final Screen     parent;
@@ -64,7 +57,6 @@ public final class ScoreboardTab {
     // PLAYERS サブタブ
     private List<PlayerListEntry> entries = new ArrayList<>();
     private int     scrollOffset  = 0;
-    // FIX③: loaded を init() のたびにリセットするため、onClose() でもリセットする
     private boolean loaded        = false;
     private boolean waiting       = false;
     private boolean draggingScrollbar = false;
@@ -72,10 +64,6 @@ public final class ScoreboardTab {
     private int     dragStartScroll   = 0;
 
     // ───── malilib ボタン／ウィジェット ─────
-    // サブタブボタンは malilib に登録せず render()/mouseClicked() で自前描画・判定する
-
-    // プレイヤータブ専用
-    // FIX①: ButtonGeneric → HideableButton に変更（setShown() が呼べるようにする）
     private HideableButton refreshBtn;
     private final List<HideableButton> rowButtons = new ArrayList<>();
 
@@ -103,11 +91,9 @@ public final class ScoreboardTab {
     public void init(int x, int y, int width, int height) {
         this.x = x; this.y = y; this.width = width; this.height = height;
 
-        // FIX③: init() が呼ばれるたびに loaded をリセットし、再オープン時も再取得を行う
         loaded = false;
 
         // ── プレイヤータブ ──
-        // FIX①: new ButtonGeneric → new HideableButton に変更
         refreshBtn = host.addButton(
                 new HideableButton(x + width - BUTTON_W - 4, y + SUBTAB_H + 4, BUTTON_W, 16, "Refresh"),
                 (btn, mb) -> requestList());
@@ -173,15 +159,16 @@ public final class ScoreboardTab {
 
         // ── サーバーコールバック ──
         ScoreboardPacketClient.setOnListUpdated(list -> {
+            // スクロール位置を保持するためリセットしない
             this.entries = new ArrayList<>(list);
-            this.scrollOffset = 0;
             this.waiting = false;
             rebuildRowButtons();
-            // FIX②: コールバック経由で rowButtons が再構築された後、
-            //        現在のサブタブに合わせて表示状態を正しく反映する
             updateSubTabVisibility();
         });
-        ScoreboardPacketClient.setOnRankingUpdated(ScoreboardHudRenderer::resetPage);
+        // ランキング更新時はページをリセットしない（現在ページを維持）
+        ScoreboardPacketClient.setOnRankingUpdated(() -> {
+            // ページの clamp は ScoreboardHudRenderer.render() 内で行うため何もしない
+        });
 
         if (!loaded) {
             loaded = true;
@@ -200,7 +187,6 @@ public final class ScoreboardTab {
     public void onClose() {
         ScoreboardPacketClient.setOnListUpdated(null);
         ScoreboardPacketClient.setOnRankingUpdated(null);
-        // FIX③: 画面を閉じたら loaded をリセットし、次回オープン時に再取得させる
         loaded = false;
     }
 
@@ -211,20 +197,12 @@ public final class ScoreboardTab {
         updateSubTabVisibility();
     }
 
-    /**
-     * アクティブなサブタブに応じてボタン／ウィジェットを表示・退避する。
-     * setVisible() が malilib 0.12.0 にないため、非アクティブ側は OFFSCREEN へ退避。
-     */
     private void updateSubTabVisibility() {
         boolean players = activeSubTab == SubTab.PLAYERS;
 
-        // サブタブボタンは自前描画のため malilib 側の操作不要
-
-        // プレイヤータブ
         setShown(refreshBtn, players);
         for (HideableButton b : rowButtons) setShown(b, players);
 
-        // 表示設定タブ
         boolean display = !players;
         setShown(customHudBtn,   display);
         setShown(hideVanillaBtn, display);
@@ -245,13 +223,24 @@ public final class ScoreboardTab {
     // ───── 行ボタン再構築 ─────
 
     private void rebuildRowButtons() {
-        // 古い行ボタンを退避
         for (HideableButton b : rowButtons) b.setShown(false);
         rowButtons.clear();
 
         if (activeSubTab != SubTab.PLAYERS) return;
 
-        for (PlayerListEntry entry : entries) {
+        // 表示中と非表示でカテゴリ分け
+        List<PlayerListEntry> visible  = entries.stream().filter(e -> !e.isBlocked()).collect(Collectors.toList());
+        List<PlayerListEntry> blocked  = entries.stream().filter(PlayerListEntry::isBlocked).collect(Collectors.toList());
+
+        // 表示中カテゴリ
+        // カテゴリヘッダーはボタンではなく render() 側で描画するので、
+        // rowButtons にはエントリ数だけ登録し、描画時にオフセット計算する
+        addEntryButtons(visible);
+        addEntryButtons(blocked);
+    }
+
+    private void addEntryButtons(List<PlayerListEntry> list) {
+        for (PlayerListEntry entry : list) {
             HideableButton btn = host.addButton(
                     new HideableButton(LIST_X, OFFSCREEN, BUTTON_W, ROW_HEIGHT - 2,
                             entry.isBlocked() ? "§c非表示" : "§a表示中"),
@@ -259,7 +248,7 @@ public final class ScoreboardTab {
                         ScoreboardPacketClient.toggleBlock(entry.uuid());
                         waiting = true;
                     });
-            btn.setShown(true); // プレイヤータブがアクティブなら表示位置は render で更新
+            btn.setShown(true);
             rowButtons.add(btn);
         }
     }
@@ -269,7 +258,6 @@ public final class ScoreboardTab {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         TextRenderer tr = MinecraftClient.getInstance().textRenderer;
 
-        // サブタブボタンを自前描画（背景＋テキスト）
         renderSubTabButton(matrices, tr, x,      y, 90, SUBTAB_H, SubTab.PLAYERS, mouseX, mouseY);
         renderSubTabButton(matrices, tr, x + 94, y, 90, SUBTAB_H, SubTab.DISPLAY, mouseX, mouseY);
         Screen.fill(matrices, x, y + SUBTAB_H + 2, x + width, y + SUBTAB_H + 3, 0x66FFFFFF);
@@ -288,9 +276,7 @@ public final class ScoreboardTab {
                 && mouseY >= by && mouseY < by + bh;
         int bg = active ? 0xFF555555 : hovered ? 0xFF3A3A5A : 0xFF222244;
         Screen.fill(m, bx, by, bx + bw, by + bh, bg);
-        // アクティブタブは上辺を明るく、非アクティブは暗め
         Screen.fill(m, bx, by, bx + bw, by + 1, active ? 0xFFFFFFFF : 0x88FFFFFF);
-        // ラベルを中央に描画
         int textColor = active ? 0xFFFFFF55 : 0xFFCCCCCC;
         float tx = bx + (bw - tr.getWidth(tab.label)) / 2f;
         float ty = by + (bh - 8) / 2f;
@@ -311,13 +297,21 @@ public final class ScoreboardTab {
             return;
         }
 
+        // カテゴリ分け
+        List<PlayerListEntry> visibleEntries = entries.stream().filter(e -> !e.isBlocked()).collect(Collectors.toList());
+        List<PlayerListEntry> blockedEntries = entries.stream().filter(PlayerListEntry::isBlocked).collect(Collectors.toList());
+
+        // 仮想行リスト（カテゴリヘッダー込み）を構築してスクロール計算に使う
+        int totalVirtualH = 0;
+        if (!visibleEntries.isEmpty()) totalVirtualH += CATEGORY_H + visibleEntries.size() * ROW_HEIGHT;
+        if (!blockedEntries.isEmpty()) totalVirtualH += CATEGORY_H + blockedEntries.size() * ROW_HEIGHT;
+
         int listTop    = y + SUBTAB_H + ROW_HEIGHT + 4;
         int listBottom = y + height - 4;
         int visibleH   = listBottom - listTop;
-        int maxScroll  = Math.max(0, entries.size() * ROW_HEIGHT - visibleH);
+        int maxScroll  = Math.max(0, totalVirtualH - visibleH);
         scrollOffset   = Math.max(0, Math.min(scrollOffset, maxScroll));
 
-        // Scissor でリスト領域を切り抜く
         int listWidth = width - SCROLLBAR_W - 4;
         double scale = MinecraftClient.getInstance().getWindow().getScaleFactor();
         com.mojang.blaze3d.systems.RenderSystem.enableScissor(
@@ -326,39 +320,86 @@ public final class ScoreboardTab {
                 (int)(listWidth * scale), (int)(visibleH * scale));
 
         int drawY = listTop - scrollOffset;
-        for (int i = 0; i < entries.size(); i++) {
-            PlayerListEntry entry = entries.get(i);
-            int rowY = drawY + i * ROW_HEIGHT;
-            boolean inView = rowY + ROW_HEIGHT >= listTop && rowY <= listBottom;
+        int rowBtnIndex = 0;
 
-            // 行ボタンは常に更新する（範囲外は OFFSCREEN に退避して残像を防ぐ）
-            if (i < rowButtons.size()) {
-                HideableButton btn = rowButtons.get(i);
-                if (inView) {
-                    btn.setY(rowY + 1);
-                    btn.setDisplayString(entry.isBlocked() ? "§c非表示" : "§a表示中");
-                } else {
-                    btn.setY(OFFSCREEN);
-                }
+        // ── 表示中カテゴリ ──
+        if (!visibleEntries.isEmpty()) {
+            int catY = drawY;
+            if (catY + CATEGORY_H >= listTop && catY <= listBottom) {
+                Screen.fill(matrices, x, catY, x + width, catY + CATEGORY_H, 0x44AAFFAA);
+                tr.drawWithShadow(matrices, "§a■ 表示中 (" + visibleEntries.size() + ")", LIST_X + 2, catY + 3, 0xAAFFAA);
             }
+            drawY += CATEGORY_H;
 
-            if (!inView) continue;
+            for (int i = 0; i < visibleEntries.size(); i++) {
+                PlayerListEntry entry = visibleEntries.get(i);
+                int rowY = drawY + i * ROW_HEIGHT;
+                boolean inView = rowY + ROW_HEIGHT >= listTop && rowY <= listBottom;
 
-            if (i % 2 == 0) Screen.fill(matrices, x, rowY, x + width, rowY + ROW_HEIGHT, 0x18FFFFFF);
+                if (rowBtnIndex < rowButtons.size()) {
+                    HideableButton btn = rowButtons.get(rowBtnIndex);
+                    if (inView) {
+                        btn.setY(rowY + 1);
+                        btn.setDisplayString("§a表示中");
+                    } else {
+                        btn.setY(OFFSCREEN);
+                    }
+                }
+                rowBtnIndex++;
 
-            int nc = entry.isBlocked() ? 0x666666 : 0xFFFFFF;
-            String name = entry.displayName().length() > 20
-                    ? entry.displayName().substring(0, 19) + "…" : entry.displayName();
-            tr.drawWithShadow(matrices, name,
-                    LIST_X + BUTTON_W + 4, rowY + 6, nc);
-            tr.drawWithShadow(matrices, entry.isBot() ? "§6[Bot]" : "§7[人]",
-                    LIST_X + BUTTON_W + 130, rowY + 6, 0xFFFFFF);
+                if (!inView) continue;
+                if (i % 2 == 0) Screen.fill(matrices, x, rowY, x + width, rowY + ROW_HEIGHT, 0x18FFFFFF);
+                String name = truncate(entry.displayName(), 20);
+                tr.drawWithShadow(matrices, name, LIST_X + BUTTON_W + 4, rowY + 6, 0xFFFFFF);
+                tr.drawWithShadow(matrices, entry.isBot() ? "§6[Bot]" : "§7[人]", LIST_X + BUTTON_W + 130, rowY + 6, 0xFFFFFF);
+            }
+            drawY += visibleEntries.size() * ROW_HEIGHT;
         }
+
+        // ── 非表示カテゴリ ──
+        if (!blockedEntries.isEmpty()) {
+            int catY = drawY;
+            if (catY + CATEGORY_H >= listTop && catY <= listBottom) {
+                Screen.fill(matrices, x, catY, x + width, catY + CATEGORY_H, 0x44FF8888);
+                tr.drawWithShadow(matrices, "§c■ 非表示 (" + blockedEntries.size() + ")", LIST_X + 2, catY + 3, 0xFFAAAA);
+            }
+            drawY += CATEGORY_H;
+
+            for (int i = 0; i < blockedEntries.size(); i++) {
+                PlayerListEntry entry = blockedEntries.get(i);
+                int rowY = drawY + i * ROW_HEIGHT;
+                boolean inView = rowY + ROW_HEIGHT >= listTop && rowY <= listBottom;
+
+                if (rowBtnIndex < rowButtons.size()) {
+                    HideableButton btn = rowButtons.get(rowBtnIndex);
+                    if (inView) {
+                        btn.setY(rowY + 1);
+                        btn.setDisplayString("§c非表示");
+                    } else {
+                        btn.setY(OFFSCREEN);
+                    }
+                }
+                rowBtnIndex++;
+
+                if (!inView) continue;
+                if (i % 2 == 0) Screen.fill(matrices, x, rowY, x + width, rowY + ROW_HEIGHT, 0x18FFFFFF);
+                String name = truncate(entry.displayName(), 20);
+                tr.drawWithShadow(matrices, name, LIST_X + BUTTON_W + 4, rowY + 6, 0x666666);
+                tr.drawWithShadow(matrices, entry.isBot() ? "§6[Bot]" : "§7[人]", LIST_X + BUTTON_W + 130, rowY + 6, 0xFFFFFF);
+            }
+        }
+
+        // 退避（残像防止）
+        while (rowBtnIndex < rowButtons.size()) {
+            rowButtons.get(rowBtnIndex).setY(OFFSCREEN);
+            rowBtnIndex++;
+        }
+
         com.mojang.blaze3d.systems.RenderSystem.disableScissor();
 
         // スクロールバー
         if (maxScroll > 0) {
-            int barH   = Math.max(24, visibleH * visibleH / (entries.size() * ROW_HEIGHT));
+            int barH   = Math.max(24, visibleH * visibleH / Math.max(1, totalVirtualH));
             barH       = Math.min(barH, visibleH);
             int trackH = visibleH - barH;
             int barY   = listTop + (trackH > 0 ? trackH * scrollOffset / maxScroll : 0);
@@ -376,10 +417,8 @@ public final class ScoreboardTab {
         ClientConfig cfg = ClientConfigManager.config;
         int lx = x + 8;
 
-        // ページサイズラベル（スライダーの左）
         tr.drawWithShadow(matrices, "ページサイズ:", lx, dispRowY(3) + 4, 0xFFFFFF);
 
-        // 現在ページ情報
         int infoY = dispRowY(3) + ROW_HEIGHT + 4;
         ScoreboardPacketClient.RankingData data = ScoreboardPacketClient.getCachedRanking();
         int total = data != null ? data.full().size() : 0;
@@ -389,13 +428,10 @@ public final class ScoreboardTab {
                 "ランキング: " + total + "人   ページ: " + (page + 1) + "/" + (maxP + 1),
                 lx, infoY, 0xAAAAAA);
 
-        // 仕切り線
         int divY = dispRowY(4) + 22;
         Screen.fill(matrices, x, divY, x + width, divY + 1, 0x44FFFFFF);
 
-        // スケールスライダーのラベル
         tr.drawWithShadow(matrices, "スケール:", lx, dispRowY(6) + 4, 0xFFFFFF);
-        // 位置情報
         tr.drawWithShadow(matrices,
                 String.format("X:%d%%  Y:%d%%",
                         cfg.scoreboardPositionX, cfg.scoreboardPositionY),
@@ -404,29 +440,24 @@ public final class ScoreboardTab {
 
     // ───── 座標ヘルパー ─────
 
-    /**
-     * 表示設定タブの行 Y 座標を一元管理する。
-     * init() と render() の両方がこのメソッドのみを参照するため座標ズレが起きない。
-     */
     private int dispRowY(int index) {
         int base = y + SUBTAB_H + 8;
         return switch (index) {
-            case 0 -> base;                                              // カスタムHUD
-            case 1 -> base + ROW_HEIGHT;                                // バニラ非表示
-            case 2 -> base + ROW_HEIGHT * 2;                            // サーバートータル
-            case 3 -> base + ROW_HEIGHT * 3;                            // ページサイズスライダー
-            case 4 -> base + ROW_HEIGHT * 3 + ROW_HEIGHT + 4 + 12;     // ページ操作ボタン
-            case 5 -> base + ROW_HEIGHT * 3 + ROW_HEIGHT + 4 + 12 + 22 + 1 + 6; // 位置/色ボタン
-            case 6 -> base + ROW_HEIGHT * 3 + ROW_HEIGHT + 4 + 12 + 22 + 1 + 6 + 24; // スケールスライダー
+            case 0 -> base;
+            case 1 -> base + ROW_HEIGHT;
+            case 2 -> base + ROW_HEIGHT * 2;
+            case 3 -> base + ROW_HEIGHT * 3;
+            case 4 -> base + ROW_HEIGHT * 3 + ROW_HEIGHT + 4 + 12;
+            case 5 -> base + ROW_HEIGHT * 3 + ROW_HEIGHT + 4 + 12 + 22 + 1 + 6;
+            case 6 -> base + ROW_HEIGHT * 3 + ROW_HEIGHT + 4 + 12 + 22 + 1 + 6 + 24;
             default -> base;
         };
     }
 
-    // ───── 入力処理（スクロールバーのみ、ボタンは malilib が処理） ─────
+    // ───── 入力処理 ─────
 
     public boolean mouseClicked(double mx, double my, int button) {
         if (button == 0) {
-            // サブタブボタンのクリック判定（自前）
             if (my >= y && my < y + SUBTAB_H) {
                 if (mx >= x && mx < x + 90 && activeSubTab != SubTab.PLAYERS) {
                     switchSubTab(SubTab.PLAYERS);
@@ -440,12 +471,19 @@ public final class ScoreboardTab {
         }
         if (button != 0 || activeSubTab != SubTab.PLAYERS) return false;
 
+        // カテゴリ込みの totalVirtualH を再計算
+        List<PlayerListEntry> visibleEntries = entries.stream().filter(e -> !e.isBlocked()).collect(Collectors.toList());
+        List<PlayerListEntry> blockedEntries = entries.stream().filter(PlayerListEntry::isBlocked).collect(Collectors.toList());
+        int totalVirtualH = 0;
+        if (!visibleEntries.isEmpty()) totalVirtualH += CATEGORY_H + visibleEntries.size() * ROW_HEIGHT;
+        if (!blockedEntries.isEmpty()) totalVirtualH += CATEGORY_H + blockedEntries.size() * ROW_HEIGHT;
+
         int listTop    = y + SUBTAB_H + ROW_HEIGHT + 4;
         int listBottom = y + height - 4;
         int visibleH   = listBottom - listTop;
-        int maxScroll  = Math.max(0, entries.size() * ROW_HEIGHT - visibleH);
+        int maxScroll  = Math.max(0, totalVirtualH - visibleH);
         if (maxScroll > 0) {
-            int barH   = Math.max(24, visibleH * visibleH / (entries.size() * ROW_HEIGHT));
+            int barH   = Math.max(24, visibleH * visibleH / Math.max(1, totalVirtualH));
             barH       = Math.min(barH, visibleH);
             int trackH = visibleH - barH;
             int barY   = listTop + (trackH > 0 ? trackH * scrollOffset / maxScroll : 0);
@@ -468,12 +506,18 @@ public final class ScoreboardTab {
 
     public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
         if (!draggingScrollbar) return false;
+        List<PlayerListEntry> visibleEntries = entries.stream().filter(e -> !e.isBlocked()).collect(Collectors.toList());
+        List<PlayerListEntry> blockedEntries = entries.stream().filter(PlayerListEntry::isBlocked).collect(Collectors.toList());
+        int totalVirtualH = 0;
+        if (!visibleEntries.isEmpty()) totalVirtualH += CATEGORY_H + visibleEntries.size() * ROW_HEIGHT;
+        if (!blockedEntries.isEmpty()) totalVirtualH += CATEGORY_H + blockedEntries.size() * ROW_HEIGHT;
+
         int listTop    = y + SUBTAB_H + ROW_HEIGHT + 4;
         int listBottom = y + height - 4;
         int visibleH   = listBottom - listTop;
-        int maxScroll  = Math.max(0, entries.size() * ROW_HEIGHT - visibleH);
+        int maxScroll  = Math.max(0, totalVirtualH - visibleH);
         if (maxScroll > 0) {
-            int barH   = Math.max(24, visibleH * visibleH / (entries.size() * ROW_HEIGHT));
+            int barH   = Math.max(24, visibleH * visibleH / Math.max(1, totalVirtualH));
             barH       = Math.min(barH, visibleH);
             int trackH = visibleH - barH;
             if (trackH > 0) {
@@ -490,8 +534,13 @@ public final class ScoreboardTab {
         int listTop    = y + SUBTAB_H + ROW_HEIGHT + 4;
         int listBottom = y + height - 4;
         if (my < listTop || my > listBottom) return false;
+        List<PlayerListEntry> visibleEntries = entries.stream().filter(e -> !e.isBlocked()).collect(Collectors.toList());
+        List<PlayerListEntry> blockedEntries = entries.stream().filter(PlayerListEntry::isBlocked).collect(Collectors.toList());
+        int totalVirtualH = 0;
+        if (!visibleEntries.isEmpty()) totalVirtualH += CATEGORY_H + visibleEntries.size() * ROW_HEIGHT;
+        if (!blockedEntries.isEmpty()) totalVirtualH += CATEGORY_H + blockedEntries.size() * ROW_HEIGHT;
         int visibleH  = listBottom - listTop;
-        int maxScroll = Math.max(0, entries.size() * ROW_HEIGHT - visibleH);
+        int maxScroll = Math.max(0, totalVirtualH - visibleH);
         scrollOffset  = Math.max(0, Math.min((int)(scrollOffset - amount * SCROLL_SPEED), maxScroll));
         return true;
     }
@@ -501,6 +550,10 @@ public final class ScoreboardTab {
     private void requestList() { waiting = true; ScoreboardPacketClient.requestPlayerList(); }
 
     private static String onOff(boolean v) { return v ? "§aON" : "§cOFF"; }
+
+    private static String truncate(String s, int max) {
+        return s.length() > max ? s.substring(0, max - 1) + "…" : s;
+    }
 
     private static void drawCentered(MatrixStack m, TextRenderer tr, String text, int cx, int cy, int color) {
         tr.drawWithShadow(m, text, cx - tr.getWidth(text) / 2f, cy, color);
@@ -517,13 +570,11 @@ public final class ScoreboardTab {
 
         @Override
         public double getValueRelative() {
-            // 0.5-3.0 → 0.0-1.0 (刻み 0.05 × 50 ステップ)
             return (cfg.scoreboardScale - 0.5f) / 2.5f;
         }
 
         @Override
         public void setValueRelative(double rel) {
-            // 0.0-1.0 → 0.5-3.0、0.05刻みに丸める
             float v = (float)(Math.round(rel * 50) * 0.05 + 0.5);
             v = Math.max(0.5f, Math.min(3.0f, v));
             if (Math.abs(cfg.scoreboardScale - v) > 0.001f) {
@@ -540,11 +591,6 @@ public final class ScoreboardTab {
 
     // ───── 内部クラス：表示切り替え可能な ButtonGeneric ─────
 
-    /**
-     * malilib 0.12.0 には setVisible() がないため、
-     * 非表示時は y を OFFSCREEN に退避することで isMouseOver() が常に false になるようにする。
-     * 描画も malilib 内部の visible フィールドで制御する。
-     */
     public static class HideableButton extends ButtonGeneric {
         private int shownY = OFFSCREEN;
 
@@ -559,7 +605,6 @@ public final class ScoreboardTab {
             this.enabled = shown;
         }
 
-        /** 表示位置の Y を更新する（スクロール追従など） */
         public void setShownY(int y) {
             this.shownY = y;
             if (this.visible) this.y = y;

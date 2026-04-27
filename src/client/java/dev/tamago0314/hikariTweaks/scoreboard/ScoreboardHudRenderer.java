@@ -77,6 +77,8 @@ public final class ScoreboardHudRenderer {
 
         int pageSize = Math.max(1, cfg.scoreboardPageSize);
         int maxPage  = calcMaxPage(total, pageSize);
+        // ランキング更新でエントリ数が変化してもページが範囲外にならないよう clamp するだけ
+        // （resetPage() は呼ばず、可能な限り現在ページを維持する）
         if (currentPage > maxPage) currentPage = maxPage;
 
         int startIdx = currentPage * pageSize;
