@@ -258,10 +258,6 @@ public final class UpdateCheckerService {
             if (config == null) {
                 return;
             }
-            if (info.version.equals(config.updateLastNotifiedVersion)) {
-                return;
-            }
-
             String current = HikariTweaksClient.getModVersion();
 
             // ── 1行目：アップデート通知 ──────────────────────────────
@@ -288,8 +284,7 @@ public final class UpdateCheckerService {
 
             client.player.sendMessage(urlLabel.copy().append(urlText), false);
 
-            config.updateLastNotifiedVersion = info.version;
-            ClientConfigManager.save();
+
         });
     }
 
