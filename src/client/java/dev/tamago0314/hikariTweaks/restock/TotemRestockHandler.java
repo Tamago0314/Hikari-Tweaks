@@ -48,7 +48,6 @@ public final class TotemRestockHandler {
                 if (tryRestockToSlot(client, pendingTargetInventorySlot)) {
                     cooldownTicks = 5;
                     clearPending();
-                    player.sendMessage(Text.of("繝医・繝・Β陬懷・"), true);
                 } else if (--pendingRetries <= 0) {
                     clearPending();
                 }
