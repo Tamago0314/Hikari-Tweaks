@@ -17,10 +17,10 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "dev.tamago0314.hikariTweaks.HikariTweaksClient"
+      "com.hikariserver.hikaritweaks.HikariTweaksClient"
     ],
     "modmenu": [
-      "dev.tamago0314.hikariTweaks.integration.ModMenuCompat"
+      "com.hikariserver.hikaritweaks.integration.ModMenuCompat"
     ]
   },
   "mixins": [
