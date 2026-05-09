@@ -34,6 +34,11 @@ public final class TweaksOptions {
             "使用された不死のトーテムをインベントリから探して、使っていた手へ補充します。",
             "トーテム補充"
     );
+    public static final ConfigBooleanHotkeyed AUTO_LITEMATICA_REFRESH = new ConfigBooleanHotkeyed(
+            "autoLitematicaRefresh", false, "",
+            "Litematica のレイヤー変更後にマテリアルリストを自動で Refresh します（要 Litematica）。",
+            "マテリアルリスト自動Refresh"
+    );
 
     // ── リスト ────────────────────────────────────────────
     public static final ConfigStringList HOTBAR_RESTOCK_LIST = new ConfigStringList(
@@ -61,7 +66,8 @@ public final class TweaksOptions {
             FIX_BEACON_RANGE_FREE_CAM,
             DURABILITY_WARNING_ENABLED,
             AUTO_RESTOCK_HOTBAR,
-            TOTEM_RESTOCK
+            TOTEM_RESTOCK,
+            AUTO_LITEMATICA_REFRESH
     );
     private static final List<IConfigBase> LISTS = List.of(
             HOTBAR_RESTOCK_LIST
@@ -78,6 +84,7 @@ public final class TweaksOptions {
         DURABILITY_WARNING_ENABLED.setValueChangeCallback(c -> onConfigChanged());
         AUTO_RESTOCK_HOTBAR.setValueChangeCallback(c -> onConfigChanged());
         TOTEM_RESTOCK.setValueChangeCallback(c -> onConfigChanged());
+        AUTO_LITEMATICA_REFRESH.setValueChangeCallback(c -> onConfigChanged());
         HOTBAR_RESTOCK_LIST.setValueChangeCallback(c -> onConfigChanged());
         OPEN_CONFIG.setValueChangeCallback(c -> onConfigChanged());
         SCOREBOARD_NEXT_PAGE.setValueChangeCallback(c -> onConfigChanged());
@@ -97,6 +104,7 @@ public final class TweaksOptions {
                 DURABILITY_WARNING_ENABLED,
                 AUTO_RESTOCK_HOTBAR,
                 TOTEM_RESTOCK,
+                AUTO_LITEMATICA_REFRESH,
                 OPEN_CONFIG,
                 SCOREBOARD_NEXT_PAGE,
                 SCOREBOARD_PREV_PAGE
@@ -115,6 +123,8 @@ public final class TweaksOptions {
             AUTO_RESTOCK_HOTBAR.getKeybind().setValueFromString(config.autoRestockHotbarHotkey);
             TOTEM_RESTOCK.setBooleanValue(config.totemRestock);
             TOTEM_RESTOCK.getKeybind().setValueFromString(config.totemRestockHotkey);
+            AUTO_LITEMATICA_REFRESH.setBooleanValue(config.autoLitematicaRefresh);
+            AUTO_LITEMATICA_REFRESH.getKeybind().setValueFromString(config.autoLitematicaRefreshHotkey);
             HOTBAR_RESTOCK_LIST.setStrings(config.hotbarRestockList);
             OPEN_CONFIG.getKeybind().setValueFromString(config.openConfigHotkey);
             SCOREBOARD_NEXT_PAGE.getKeybind().setValueFromString(config.scoreboardNextPageHotkey);
@@ -133,6 +143,8 @@ public final class TweaksOptions {
         config.autoRestockHotbarHotkey        = AUTO_RESTOCK_HOTBAR.getKeybind().getStringValue();
         config.totemRestock                   = TOTEM_RESTOCK.getBooleanValue();
         config.totemRestockHotkey             = TOTEM_RESTOCK.getKeybind().getStringValue();
+        config.autoLitematicaRefresh          = AUTO_LITEMATICA_REFRESH.getBooleanValue();
+        config.autoLitematicaRefreshHotkey    = AUTO_LITEMATICA_REFRESH.getKeybind().getStringValue();
         config.hotbarRestockList              = new java.util.ArrayList<>(HOTBAR_RESTOCK_LIST.getStrings());
         config.openConfigHotkey               = OPEN_CONFIG.getKeybind().getStringValue();
         config.scoreboardNextPageHotkey       = SCOREBOARD_NEXT_PAGE.getKeybind().getStringValue();

@@ -3,7 +3,7 @@ package com.hikariserver.hikaritweaks.config;
 public class ClientConfig {
     // ── バージョン管理 ────────────────────────────────────────
     /** 設定ファイルのスキーマバージョン。フィールド追加時に上げる */
-    public int configVersion = 4;
+    public int configVersion = 5;
 
     public boolean fixBeaconRangeFreeCam = true;
     public String fixBeaconRangeFreeCamHotkey = "";
@@ -13,6 +13,8 @@ public class ClientConfig {
     public String autoRestockHotbarHotkey = "";
     public boolean totemRestock = false;
     public String totemRestockHotkey = "";
+    public boolean autoLitematicaRefresh = false;
+    public String autoLitematicaRefreshHotkey = "";
     public java.util.List<String> hotbarRestockList = new java.util.ArrayList<>(java.util.List.of("minecraft:firework_rocket", "minecraft:golden_carrot"));
     public String openConfigHotkey = "RIGHT_SHIFT";
 
@@ -72,6 +74,7 @@ public class ClientConfig {
         if (updateLastNotifiedVersion == null) updateLastNotifiedVersion = "";
         if (scoreboardNextPageHotkey == null) scoreboardNextPageHotkey = "";
         if (scoreboardPrevPageHotkey == null) scoreboardPrevPageHotkey = "";
+        if (autoLitematicaRefreshHotkey == null) autoLitematicaRefreshHotkey = "";
         updateGithubOwner = updateGithubOwner.trim();
         updateGithubRepo = updateGithubRepo.trim();
         updateReleaseUrlOverride = updateReleaseUrlOverride.trim();
@@ -117,6 +120,11 @@ public class ClientConfig {
             // v4では getMaxSteps()=49（50段階）に拡張済みなので、
             // 既存の値はそのまま維持しつつ上限のみ緩和する（normalize()が担保）。
             configVersion = 4;
+        }
+        if (configVersion < 5) {
+            autoLitematicaRefresh = false;
+            autoLitematicaRefreshHotkey = "";
+            configVersion = 5;
         }
     }
 }

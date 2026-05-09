@@ -19,6 +19,7 @@ public final class HotkeyCallbacks {
         attachToggle(TweaksOptions.DURABILITY_WARNING_ENABLED);
         attachToggle(TweaksOptions.AUTO_RESTOCK_HOTBAR);
         attachToggle(TweaksOptions.TOTEM_RESTOCK);
+        attachToggle(TweaksOptions.AUTO_LITEMATICA_REFRESH);
 
         // Config画面を開くキー
         TweaksOptions.OPEN_CONFIG.getKeybind().setCallback(new IHotkeyCallback() {

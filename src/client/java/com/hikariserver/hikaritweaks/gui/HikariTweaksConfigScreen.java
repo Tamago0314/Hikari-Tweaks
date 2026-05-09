@@ -105,7 +105,8 @@ public class HikariTweaksConfigScreen extends GuiConfigsBase
                     wrapConfig(TweaksOptions.FIX_BEACON_RANGE_FREE_CAM),
                     wrapConfig(TweaksOptions.DURABILITY_WARNING_ENABLED),
                     wrapConfig(TweaksOptions.AUTO_RESTOCK_HOTBAR),
-                    wrapConfig(TweaksOptions.TOTEM_RESTOCK)
+                    wrapConfig(TweaksOptions.TOTEM_RESTOCK),
+                    wrapConfig(TweaksOptions.AUTO_LITEMATICA_REFRESH)
             ));
             case LISTS      -> ConfigOptionWrapper.createFor(TweaksOptions.lists());
             case HOTKEYS    -> ConfigOptionWrapper.createFor(TweaksOptions.hotkeys());

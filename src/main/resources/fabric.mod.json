@@ -1,4 +1,4 @@
-﻿{
+{
   "schemaVersion": 1,
   "id": "hikari-tweaks",
   "version": "${version}",
@@ -24,7 +24,8 @@
     ]
   },
   "mixins": [
-    "hikari-tweaks.mixins.json"
+    "hikari-tweaks.mixins.json",
+    "hikari-tweaks-litematica.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.14.0",
@@ -34,6 +35,7 @@
   },
   "suggests": {
     "modmenu": "*",
-    "minihud": "*"
+    "minihud": "*",
+    "litematica": "*"
   }
 }

@@ -3,6 +3,7 @@ package com.hikariserver.hikaritweaks;
 import com.hikariserver.hikaritweaks.config.ClientConfigManager;
 import com.hikariserver.hikaritweaks.config.HotkeyCallbacks;
 import com.hikariserver.hikaritweaks.hotkey.HikariTweaksHotkeyProvider;
+import com.hikariserver.hikaritweaks.litematica.LitematicaAutoRefreshHandler;
 import com.hikariserver.hikaritweaks.restock.AutoRestockHotbarHandler;
 import com.hikariserver.hikaritweaks.restock.TotemRestockHandler;
 import com.hikariserver.hikaritweaks.scoreboard.ScoreboardHudRenderer;
@@ -21,7 +22,7 @@ public class HikariTweaksClient implements ClientModInitializer {
 
     public static final String MOD_ID = "hikari-tweaks";
     public static final String MOD_NAME = "Hikari-Tweaks";
-    public static final String MOD_VERSION = "1.0.0";
+    public static final String MOD_VERSION = "1.0.5";
     private static String cachedVersion;
 
     @Override
@@ -41,13 +42,14 @@ public class HikariTweaksClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(AutoRestockHotbarHandler::tick);
         ClientTickEvents.END_CLIENT_TICK.register(TotemRestockHandler::tick);
         ClientTickEvents.END_CLIENT_TICK.register(DurabilityWarningHandler::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(LitematicaAutoRefreshHandler::tick);
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ScoreboardPacketClient.setOnListUpdated(null);
             ScoreboardPacketClient.setOnRankingUpdated(null);
             ScoreboardPacketClient.resetHiddenState();
-            // JOIN 後チェック待ち中にサーバーを抜けた場合のpendingをクリア
             UpdateCheckerService.onDisconnect();
+            LitematicaAutoRefreshHandler.reset();
         });
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
