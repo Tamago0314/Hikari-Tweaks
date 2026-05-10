@@ -34,9 +34,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "Hikari-Tweaks v${{ steps.version.outputs.version }}"
-          files: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
+          files: build/libs/*.jar
           fail_on_unmatched_files: true
           generate_release_notes: true
 
