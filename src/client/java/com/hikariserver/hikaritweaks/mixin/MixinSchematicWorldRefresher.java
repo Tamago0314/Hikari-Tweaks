@@ -8,17 +8,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Litematica のレイヤー変更（updateBetweenY/X/Z）を検知し、
- * マテリアルリストを自動で Refresh する。
- *
- * Tweakermore の lmAutoRefreshMaterialList と同じアプローチ。
- * Litematica が存在しない環境では @Mixin の required=false により
- * このクラスは静かに無視される。
- */
+// Litematica のレイヤー変更メソッドにフックし、マテリアルリストの自動 Refresh を実行する。
+// hikari-tweaks-litematica.mixins.json で required=false として登録されているため
+// Litematica が存在しない環境ではこの Mixin は静かに無視される。
 @Mixin(value = SchematicWorldRefresher.class, remap = false)
 public abstract class MixinSchematicWorldRefresher {
 
+    // X/Y/Z いずれかのレイヤーが変更されたとき Refresh を予約する
     @Inject(
             method = {"updateBetweenX", "updateBetweenY", "updateBetweenZ"},
             at = @At("HEAD"),

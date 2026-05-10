@@ -2,6 +2,7 @@ package com.hikariserver.hikaritweaks.config;
 
 import com.hikariserver.hikaritweaks.gui.HikariTweaksConfigScreen;
 import com.hikariserver.hikaritweaks.scoreboard.ScoreboardHudRenderer;
+import fi.dy.masa.malilib.config.IHotkeyTogglable;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.hotkeys.IHotkeyCallback;
 import fi.dy.masa.malilib.hotkeys.IKeybind;
@@ -9,19 +10,22 @@ import fi.dy.masa.malilib.hotkeys.KeyAction;
 import fi.dy.masa.malilib.util.InfoUtils;
 import net.minecraft.client.MinecraftClient;
 
+// ホットキーのコールバックをまとめて登録するクラス。
+// HikariTweaksClient#onInitializeClient() から一度だけ呼ぶ。
 public final class HotkeyCallbacks {
 
     private HotkeyCallbacks() {}
 
     public static void init() {
-        // トグル系
+        // トグル系：押すたびに ON/OFF が切り替わりアクションバーに状態表示
         attachToggle(TweaksOptions.FIX_BEACON_RANGE_FREE_CAM);
         attachToggle(TweaksOptions.DURABILITY_WARNING_ENABLED);
         attachToggle(TweaksOptions.AUTO_RESTOCK_HOTBAR);
         attachToggle(TweaksOptions.TOTEM_RESTOCK);
         attachToggle(TweaksOptions.AUTO_LITEMATICA_REFRESH);
+        attachToggle(TweaksOptions.HAND_RESTOCK);
 
-        // Config画面を開くキー
+        // 設定画面を開く
         TweaksOptions.OPEN_CONFIG.getKeybind().setCallback(new IHotkeyCallback() {
             @Override
             public boolean onKeyAction(KeyAction action, IKeybind key) {
@@ -52,15 +56,17 @@ public final class HotkeyCallbacks {
         });
     }
 
-    private static void attachToggle(fi.dy.masa.malilib.config.IHotkeyTogglable config) {
+    // ConfigBooleanHotkeyed のトグルコールバックを一括で登録する。
+    // 押すたびに値が反転し、アクションバーに ON/OFF を表示して設定を保存する。
+    private static void attachToggle(IHotkeyTogglable config) {
         config.getKeybind().setCallback(new IHotkeyCallback() {
             @Override
             public boolean onKeyAction(KeyAction action, IKeybind key) {
                 config.toggleBooleanValue();
                 boolean enabled = config.getBooleanValue();
                 String status = enabled
-                        ? GuiBase.TXT_GREEN + "ON" + GuiBase.TXT_RST
-                        : GuiBase.TXT_RED  + "OFF" + GuiBase.TXT_RST;
+                        ? GuiBase.TXT_GREEN + "ON"  + GuiBase.TXT_RST
+                        : GuiBase.TXT_RED   + "OFF" + GuiBase.TXT_RST;
                 InfoUtils.printActionbarMessage("%s: %s", config.getPrettyName(), status);
                 TweaksOptions.writeToConfig(ClientConfigManager.config);
                 ClientConfigManager.save();

@@ -15,5 +15,9 @@
   "config.name.openconfig": "Open Config Screen",
   "config.comment.openconfig": "Hotkey to open the HikariTweaks config screen.",
   "key.hikariTweaks.open_config": "Open HikariTweaks Config",
-  "category.hikariTweaks": "HikariTweaks"
+  "category.hikariTweaks": "HikariTweaks",
+  "config.name.handrestock": "Hand Auto Restock",
+  "config.comment.handrestock": "Automatically restocks listed items from inventory when they drop to 5 or fewer in the hotbar.",
+  "config.name.handrestocklist": "Hand Restock List",
+  "config.comment.handrestocklist": "Item IDs targeted by the hand auto restock feature."
 }

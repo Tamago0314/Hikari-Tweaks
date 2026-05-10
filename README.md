@@ -1,6 +1,6 @@
 ﻿# Hikari-Tweaks
 
-現在バージョン: **v1.0.5**
+現在バージョン: **v1.0.6**
 
 Minecraft 1.18.2 向けの **Fabric クライアントサイド Mod** です。  
 Hikari 環境で使う便利機能をまとめています。
@@ -11,6 +11,7 @@ Hikari 環境で使う便利機能をまとめています。
 - 不死のトーテム自動補充
 - MiniHUD フリーカメラ時のビーコン範囲補正
 - **Litematica マテリアルリスト自動 Refresh**（v1.0.5 新機能）
+- **手持ち自動補充**（v1.0.6 新機能）
 
 ---
 
@@ -49,6 +50,14 @@ Hikari 環境で使う便利機能をまとめています。
 - Litematica のレイヤー表示を1段ずつ進めながら建築する際、マテリアルリストを**自動で Refresh** します
 - 毎秒（20 tick）ごとに全 SchematicPlacement のマテリアルリストを更新するため、レイヤーを切り替えるたびに手動で Refresh ボタンを押す操作が不要になります
 - Litematica がインストールされていない環境では自動的に無効化されます（エラーなし）
+- ON/OFF 切り替え可能（ホットキー対応）
+
+
+### 1.7 手持ち自動補充（v1.0.6 新機能）
+
+- ホットバー内の指定アイテムが **5 個以下** になったとき、インベントリから自動で補充します
+- Tweakeroo の handrestock 機能と同様の動作で、補充対象は「リスト」タブの **手持ち補充対象リスト** で管理します
+- ホットバーのみを監視し、インベントリ内は補充元としてのみ使用します
 - ON/OFF 切り替え可能（ホットキー対応）
 
 ### 1.6 カスタムスコアボードHUD（HikariScoreBoard 連携）、クライアントHUDとして表示します。
@@ -112,6 +121,7 @@ Hikari 環境で使う便利機能をまとめています。
 | `autoRestockHotbar` | `false` | ホットバー自動補充 |
 | `totemRestock` | `false` | トーテム自動補充 |
 | `autoLitematicaRefresh` | `false` | マテリアルリスト自動Refresh |
+| `handRestock` | `false` | 手持ち自動補充 |
 | `hotbarRestockList` | `minecraft:firework_rocket`, `minecraft:golden_carrot` | 自動補充対象リスト |
 | `openConfigHotkey` | `RIGHT_SHIFT` | 設定画面を開くキー |
 | `scoreboardCustomHud` | `true` | カスタムHUD表示 |
@@ -137,6 +147,7 @@ Hikari 環境で使う便利機能をまとめています。
 - `autoRestockHotbar`: 初期未割当（任意で設定）
 - `totemRestock`: 初期未割当（任意で設定）
 - `autoLitematicaRefresh`: 初期未割当（任意で設定）
+- `handRestock`: 初期未割当（任意で設定）
 
 ---
 

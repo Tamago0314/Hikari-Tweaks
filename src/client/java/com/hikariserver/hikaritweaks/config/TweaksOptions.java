@@ -9,11 +9,15 @@ import fi.dy.masa.malilib.hotkeys.IHotkey;
 
 import java.util.List;
 
+// 全設定オプションの定義。
+// UTILITY / LISTS / HOTKEYS_LIST の 3 グループに分けて GUI タブと対応させている。
 public final class TweaksOptions {
 
+    // loadFromConfig() 中に値変更コールバックが走って保存が二重にならないよう制御するフラグ
     private static boolean loadingFromConfig = false;
 
-    // ── 補助機能 ──────────────────────────────────────────
+    // ── 補助機能 ───────────────────────────────────────────────────────────────
+
     public static final ConfigBooleanHotkeyed FIX_BEACON_RANGE_FREE_CAM = new ConfigBooleanHotkeyed(
             "fixBeaconRangeFreeCam", true, "",
             "MiniHUD フリーカメラ時のビーコン範囲をプレイヤー位置基準に修正します。",
@@ -39,15 +43,29 @@ public final class TweaksOptions {
             "Litematica のレイヤー変更後にマテリアルリストを自動で Refresh します（要 Litematica）。",
             "マテリアルリスト自動Refresh"
     );
+    // Tweakeroo handrestock 相当。リストのアイテムが 5 個以下になったらインベントリから自動補充する。
+    public static final ConfigBooleanHotkeyed HAND_RESTOCK = new ConfigBooleanHotkeyed(
+            "handRestock", false, "",
+            "リスト内のアイテムがホットバーで 5 個以下になったとき、インベントリから自動補充します。",
+            "手持ち自動補充"
+    );
 
-    // ── リスト ────────────────────────────────────────────
+    // ── リスト ─────────────────────────────────────────────────────────────────
+
     public static final ConfigStringList HOTBAR_RESTOCK_LIST = new ConfigStringList(
             "hotbarRestockList",
             ImmutableList.of("minecraft:firework_rocket", "minecraft:golden_carrot"),
             "ホットバー自動補充の対象アイテム ID 一覧です。"
     );
+    // 手持ち自動補充の対象アイテム ID リスト
+    public static final ConfigStringList HAND_RESTOCK_LIST = new ConfigStringList(
+            "handRestockList",
+            ImmutableList.of(),
+            "手持ち自動補充の対象アイテム ID 一覧です。"
+    );
 
-    // ── ホットキー ──────────────────────────────────────
+    // ── ホットキー ─────────────────────────────────────────────────────────────
+
     public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey(
             "openConfig", "RIGHT_SHIFT",
             "HikariTweaks の設定画面を開きます。"
@@ -61,31 +79,39 @@ public final class TweaksOptions {
             "スコアボードの前のページへ切り替えます。"
     );
 
-    // ── タブ別リスト ─────────────────────────────────────
+    // ── タブ別グループ ─────────────────────────────────────────────────────────
+
+    // 「補助機能」タブに表示する設定リスト
     private static final List<IConfigBase> UTILITY = List.of(
             FIX_BEACON_RANGE_FREE_CAM,
             DURABILITY_WARNING_ENABLED,
             AUTO_RESTOCK_HOTBAR,
             TOTEM_RESTOCK,
-            AUTO_LITEMATICA_REFRESH
+            AUTO_LITEMATICA_REFRESH,
+            HAND_RESTOCK
     );
+    // 「リスト」タブに表示する設定リスト
     private static final List<IConfigBase> LISTS = List.of(
-            HOTBAR_RESTOCK_LIST
+            HOTBAR_RESTOCK_LIST,
+            HAND_RESTOCK_LIST
     );
-    /** ホットキータブ用 */
+    // 「ホットキー」タブに表示する設定リスト
     private static final List<IConfigBase> HOTKEYS_LIST = List.of(
             OPEN_CONFIG,
             SCOREBOARD_NEXT_PAGE,
             SCOREBOARD_PREV_PAGE
     );
 
+    // 値変更コールバックを登録。設定変更があれば即座に保存する。
     static {
         FIX_BEACON_RANGE_FREE_CAM.setValueChangeCallback(c -> onConfigChanged());
         DURABILITY_WARNING_ENABLED.setValueChangeCallback(c -> onConfigChanged());
         AUTO_RESTOCK_HOTBAR.setValueChangeCallback(c -> onConfigChanged());
         TOTEM_RESTOCK.setValueChangeCallback(c -> onConfigChanged());
         AUTO_LITEMATICA_REFRESH.setValueChangeCallback(c -> onConfigChanged());
+        HAND_RESTOCK.setValueChangeCallback(c -> onConfigChanged());
         HOTBAR_RESTOCK_LIST.setValueChangeCallback(c -> onConfigChanged());
+        HAND_RESTOCK_LIST.setValueChangeCallback(c -> onConfigChanged());
         OPEN_CONFIG.setValueChangeCallback(c -> onConfigChanged());
         SCOREBOARD_NEXT_PAGE.setValueChangeCallback(c -> onConfigChanged());
         SCOREBOARD_PREV_PAGE.setValueChangeCallback(c -> onConfigChanged());
@@ -93,11 +119,11 @@ public final class TweaksOptions {
 
     private TweaksOptions() {}
 
-    public static List<IConfigBase> utility()  { return UTILITY; }
-    public static List<IConfigBase> lists()    { return LISTS; }
-    public static List<IConfigBase> hotkeys()  { return HOTKEYS_LIST; }
+    public static List<IConfigBase> utility() { return UTILITY; }
+    public static List<IConfigBase> lists()   { return LISTS; }
+    public static List<IConfigBase> hotkeys() { return HOTKEYS_LIST; }
 
-    /** malilib の IHotkey リスト（HotkeyProvider 用） */
+    // malilib の HotkeyProvider に渡す全ホットキーリスト
     public static List<IHotkey> allHotkeys() {
         return List.of(
                 FIX_BEACON_RANGE_FREE_CAM,
@@ -105,12 +131,14 @@ public final class TweaksOptions {
                 AUTO_RESTOCK_HOTBAR,
                 TOTEM_RESTOCK,
                 AUTO_LITEMATICA_REFRESH,
+                HAND_RESTOCK,
                 OPEN_CONFIG,
                 SCOREBOARD_NEXT_PAGE,
                 SCOREBOARD_PREV_PAGE
         );
     }
 
+    // 設定ファイルから読み込んだ値を各オプションへ反映する
     public static void loadFromConfig(ClientConfig config) {
         config.normalize();
         loadingFromConfig = true;
@@ -125,7 +153,10 @@ public final class TweaksOptions {
             TOTEM_RESTOCK.getKeybind().setValueFromString(config.totemRestockHotkey);
             AUTO_LITEMATICA_REFRESH.setBooleanValue(config.autoLitematicaRefresh);
             AUTO_LITEMATICA_REFRESH.getKeybind().setValueFromString(config.autoLitematicaRefreshHotkey);
+            HAND_RESTOCK.setBooleanValue(config.handRestock);
+            HAND_RESTOCK.getKeybind().setValueFromString(config.handRestockHotkey);
             HOTBAR_RESTOCK_LIST.setStrings(config.hotbarRestockList);
+            HAND_RESTOCK_LIST.setStrings(config.handRestockList);
             OPEN_CONFIG.getKeybind().setValueFromString(config.openConfigHotkey);
             SCOREBOARD_NEXT_PAGE.getKeybind().setValueFromString(config.scoreboardNextPageHotkey);
             SCOREBOARD_PREV_PAGE.getKeybind().setValueFromString(config.scoreboardPrevPageHotkey);
@@ -134,6 +165,7 @@ public final class TweaksOptions {
         }
     }
 
+    // 現在の各オプション値を設定ファイル用データクラスへ書き出す
     public static void writeToConfig(ClientConfig config) {
         config.fixBeaconRangeFreeCam          = FIX_BEACON_RANGE_FREE_CAM.getBooleanValue();
         config.fixBeaconRangeFreeCamHotkey    = FIX_BEACON_RANGE_FREE_CAM.getKeybind().getStringValue();
@@ -145,7 +177,10 @@ public final class TweaksOptions {
         config.totemRestockHotkey             = TOTEM_RESTOCK.getKeybind().getStringValue();
         config.autoLitematicaRefresh          = AUTO_LITEMATICA_REFRESH.getBooleanValue();
         config.autoLitematicaRefreshHotkey    = AUTO_LITEMATICA_REFRESH.getKeybind().getStringValue();
+        config.handRestock                    = HAND_RESTOCK.getBooleanValue();
+        config.handRestockHotkey              = HAND_RESTOCK.getKeybind().getStringValue();
         config.hotbarRestockList              = new java.util.ArrayList<>(HOTBAR_RESTOCK_LIST.getStrings());
+        config.handRestockList                = new java.util.ArrayList<>(HAND_RESTOCK_LIST.getStrings());
         config.openConfigHotkey               = OPEN_CONFIG.getKeybind().getStringValue();
         config.scoreboardNextPageHotkey       = SCOREBOARD_NEXT_PAGE.getKeybind().getStringValue();
         config.scoreboardPrevPageHotkey       = SCOREBOARD_PREV_PAGE.getKeybind().getStringValue();
@@ -156,10 +191,9 @@ public final class TweaksOptions {
         writeToConfig(ClientConfigManager.config);
     }
 
+    // 設定値が変更されたときに呼ばれる。loadFromConfig() 中は保存をスキップする。
     private static void onConfigChanged() {
-        if (loadingFromConfig) {
-            return;
-        }
+        if (loadingFromConfig) return;
         if (ClientConfigManager.config != null) {
             applyRuntimeConfig();
             ClientConfigManager.save();

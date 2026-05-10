@@ -15,5 +15,9 @@
   "config.name.openconfig": "設定画面を開く",
   "config.comment.openconfig": "HikariTweaks の設定画面を開くホットキーです。",
   "key.hikariTweaks.open_config": "HikariTweaks設定を開く",
-  "category.hikariTweaks": "HikariTweaks"
+  "category.hikariTweaks": "HikariTweaks",
+  "config.name.handrestock": "手持ち自動補充",
+  "config.comment.handrestock": "リスト内のアイテムがホットバーで 5 個以下になったとき、インベントリから自動補充します。",
+  "config.name.handrestocklist": "手持ち補充対象リスト",
+  "config.comment.handrestocklist": "手持ち自動補充の対象アイテム ID 一覧です。"
 }
